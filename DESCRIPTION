@@ -1,0 +1,11 @@
+Package: filters
+Type: Package
+Title: A package to compute (nonlinear) filters
+Version: 1.0
+Date: 2016-03-09
+Author: Your Name
+Maintainer: Philip Barrett <pobarrett@gmail.com>
+Description: Implements a variety of filters, with emphasis on nonlinear extensions of the classic Kalman filter.
+License: GPL (>= 2)
+Imports: Rcpp (>= 0.11.5)
+LinkingTo: Rcpp, RcppArmadillo
