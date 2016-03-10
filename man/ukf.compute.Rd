@@ -4,7 +4,7 @@
 \alias{ukf.compute}
 \title{Compute the unscented Kalman Filter}
 \usage{
-ukf.compute(m0, P0, y, f, g, Q, R, n = length(m), alpha = 0.001,
+ukf.compute(m0, P0, y, f, g, Q, R, n = length(m0), alpha = 0.001,
   kappa = 0, betta = 2)
 }
 \arguments{

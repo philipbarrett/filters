@@ -4,6 +4,43 @@
 # Code to compute the unscented Kalman filter
 #######################################################################################
 
+#' Create the sigma nodes and weights for the unscented Kalman Filter
+#' 
+#' @param m The input mean
+#' @param P The input covariance
+#' @param n The dimension of the problem
+#' @param alpha Scaling parameter
+#' @param kappa Scaling parameter
+#' @param betta Scaling parameter
+#'   
+#' @return A list containing: matirix of weights W in two rows, W^m and W^c; and
+#'   the matrix of nodes X, where X(i) is in column i
+#'   
+sigma.weights <- function( m, P, n, alpha=1e-03, kappa=0, betta=2 ){
+  
+  lambda = alpha ^ 2 * ( n + kappa ) - n
+      # The scaling parameter
+  wts = .5 / ( n + lambda ) * matrix( 1, 2, 2*n+1 ) ;
+      # Initialize the output matrix
+  wts[ 1, 1 ] = lambda / ( n + lambda ) ; 
+  wts[ 2, 1 ] = lambda / ( n + lambda ) + 1 - alpha ^ 2 + betta ;
+      # Change the W_0 elements
+  
+  X <- matrix( 0, n, 2*n+1 )
+      # Initialize the nodes
+  sqrt.P = t( chol( P ) ) ;
+      # The Cholesky decomposition: sqrt.P * t(sqrt.P) = P
+  X[,1] = m ;
+  X[, 1 + 1:n ] = m + sqrt( n + lambda ) * sqrt.P ;
+  X[, n + 1 + 1:n ] = m - sqrt( n + lambda ) * sqrt.P ;
+      # The sigma points
+  
+  out = list( wts=wts, X=X )
+      # Create the output list
+  return( out )
+}
+
+
 #' Predict the state for the unscented Kalman Filter
 #' 
 #' @param m The previous mean
@@ -16,10 +53,10 @@
 #' 
 ukf.predict <- function( m, P, f, Q, n=length(m), alpha=1e-03, kappa=0, betta=2 ){
 
-  X <- sigma_pts( m, P, n, alpha, kappa, betta )
-      # The integration nodes (sigma points)
-  W <- sigma_weights( n, alpha, kappa, betta )
-      # The integration weights
+  X.W <- sigma.weights( m, P, n, alpha, kappa, betta )
+  X <- X.W$X
+  W <- X.W$wts
+      # The integration nodes and weights (sigma points)
   X.hat <- matrix( apply( X, 2, f ), nrow=n )
       # Evolve the sigma points through the state law of motion
   m.new <- X.hat %*% W[1, ]
@@ -43,10 +80,10 @@ ukf.predict <- function( m, P, f, Q, n=length(m), alpha=1e-03, kappa=0, betta=2 
 #' 
 ukf.update <- function( m, P, g, R, y, n=length(m), alpha=1e-03, kappa=0, betta=2 ){
   
-  X <- sigma_pts( m, P, n, alpha, kappa, betta )
-      # The integration nodes (sigma points)
-  W <- sigma_weights( n, alpha, kappa, betta )
-      # The integration weights
+  X.W <- sigma.weights( m, P, n, alpha, kappa, betta )
+  X <- X.W$X
+  W <- X.W$wts
+      # The integration nodes and weights (sigma points)
   Y.hat <- matrix( apply( X, 2, g ), ncol=2*n+1 )
       # Evolve the sigma points through the observation equation
   mu <- Y.hat %*% W[1, ]
@@ -57,7 +94,7 @@ ukf.update <- function( m, P, g, R, y, n=length(m), alpha=1e-03, kappa=0, betta=
   C <- matrix( 0, n, n.y )
       # Initialize the covariance matrices
   for( i in 1:(2*n+1) ){
-    S <- S + W[2,i] * ( Y.hat[,i] - mu ) %*% ( Y.hat[,i] - mu )
+    S <- S + W[2,i] * ( Y.hat[,i] - mu ) %*% t( Y.hat[,i] - mu )
     C <- C + W[2,i] * ( X[,i] - m ) %*% t( Y.hat[,i] - mu )
   }   # Compute the covariances
   K <- C %*% solve( S )
@@ -82,33 +119,48 @@ ukf.update <- function( m, P, g, R, y, n=length(m), alpha=1e-03, kappa=0, betta=
 #' 
 #' @return The mean and covariance of the predicted state at each point in time
 #' 
-ukf.compute <- function( m0, P0, y, f, g, Q, R, n=length(m), alpha=1e-03, kappa=0, betta=2 ){
+ukf.compute <- function( m0, P0, y, f, g, Q, R, n=length(m0), alpha=1e-03, kappa=0, betta=2 ){
 
-  if( is.null( nrow(y) ) ) y <- matrix( y, nrow=1 )
-  Q <- matrix( Q )
-  R <- matrix( R )
+  n.y <- if( is.null( nrow(y) ) ) 1 else nrow(y)
+  y <- matrix( y, nrow=n.y )
+      # Matrix formatting
+  Q <- matrix( Q, n, n )
+  R <- matrix( R, n.y, n.y )
       # Make sure that y, Q and R are formatted as a matrix
   K <- ncol(y)
       # The number of points
-  m <- matrix( 0, n, K + 1 )
-  P <- array( 0, dim=c(dim(Q), K+1 ) )  
-  m[,1] <- m0
-  P[,,1] <- P0
+  m <- matrix( 0, n, K )
+  P <- array( 0, dim=c(dim(Q), K ) )  
+#   m[,1] <- m0
+#   P[,,1] <- P0
       # Initialize the mean and covariance matrices
-  m.pred <- matrix( 0, n, K )
-  P.pred <- array( 0, dim=c(dim(Q), K ) )
+  m.pred <- matrix( 0, n, K + 1 )
+  P.pred <- array( 0, dim=c(dim(Q), K + 1 ) )
+  m.pred[,1] <- m0
+  P.pred[,,1] <- P0
       # The predictions for the mean and variance
   for( i in 1:K ){
-    pred <- ukf.predict( m[,i], matrix(P[,,i]), f, Q, n, alpha, kappa, betta )
-        # The list of predicted values
-    m.pred[,i] <- pred$m
-    P.pred[,,i] <- pred$P
-        # Store
-    update <- ukf.update( pred$m, pred$P, g, R, y[,i], n, alpha, kappa, betta )
+    update <- ukf.update( m.pred[,i], matrix(P.pred[,,i], n, n ), g, R, y[,i], n, alpha, kappa, betta )
         # The updated mean and covariance
-    m[,i+1] <- update$m
-    P[,,i+1] <- update$P
+    m[,i] <- update$m
+    P[,,i] <- update$P
+        # Store
+    pred <- ukf.predict( m[,i], matrix(P[,,i], n, n), f, Q, n, alpha, kappa, betta )
+        # The list of predicted values
+    m.pred[,i+1] <- pred$m
+    P.pred[,,i+1] <- pred$P
         # Store
   }
   return( list( m=m, P=P, m.pred=m.pred, P.pred=P.pred) )
 }
+
+rse <- function( ukf, x ){
+# Computes the RSE of a ukf output
+  rse <- sqrt( apply( ( ukf$m - x ) ^ 2, 2, sum ) )
+  rse.pred <- sqrt( apply( ( matrix( ukf$m.pred[,-ncol(ukf$m.pred)], ncol=ncol(ukf$m.pred)-1) - x ) ^ 2, 2, sum ) )
+  return( list( rse=rse, rse.pred=rse.pred ) )
+}
+
+
+
+

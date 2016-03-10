@@ -34,11 +34,9 @@ arma::mat sigma_pts( arma::vec m, arma::mat P, int n, double alpha=1e-03, double
       // Initialize output
   mat sqrt_P = chol( P, "lower" ) ;
       // The Cholesky decomposition: sqrt_P * sqrt_P.t() = P
-  mat sqrt_P_t = sqrt_P.t() ;
-      // Transpose (means that the X^i can be formed as columns more easily)
   out.col(0) = m ;
-  out.cols( 1, n ) = m * ones<rowvec>(n) + sqrt( n + lambda ) * sqrt_P_t ;
-  out.cols( n+1, 2*n ) = m * ones<rowvec>(n) - sqrt( n + lambda ) * sqrt_P_t ;
+  out.cols( 1, n ) = m * ones<rowvec>(n) + sqrt( n + lambda ) * sqrt_P ;
+  out.cols( n+1, 2*n ) = m * ones<rowvec>(n) - sqrt( n + lambda ) * sqrt_P ;
       // The sigma points
   return out ;
 }

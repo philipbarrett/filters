@@ -9,3 +9,4 @@ Description: Implements a variety of filters, with emphasis on nonlinear extensi
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.11.5)
 LinkingTo: Rcpp, RcppArmadillo
+Suggests: testthat
