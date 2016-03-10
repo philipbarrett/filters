@@ -20,7 +20,7 @@ ukf.predict <- function( m, P, f, Q, n=length(m), alpha=1e-03, kappa=0, betta=2 
       # The integration nodes (sigma points)
   W <- sigma_weights( n, alpha, kappa, betta )
       # The integration weights
-  X.hat <- apply( X, 2, f )
+  X.hat <- matrix( apply( X, 2, f ), nrow=n )
       # Evolve the sigma points through the state law of motion
   m.new <- X.hat %*% W[1, ]
       # The predicted mean
@@ -85,7 +85,9 @@ ukf.update <- function( m, P, g, R, y, n=length(m), alpha=1e-03, kappa=0, betta=
 ukf.compute <- function( m0, P0, y, f, g, Q, R, n=length(m), alpha=1e-03, kappa=0, betta=2 ){
 
   if( is.null( nrow(y) ) ) y <- matrix( y, nrow=1 )
-      # Make sure that y is formatted as a matrix
+  Q <- matrix( Q )
+  R <- matrix( R )
+      # Make sure that y, Q and R are formatted as a matrix
   K <- ncol(y)
       # The number of points
   m <- matrix( 0, n, K + 1 )
@@ -97,7 +99,7 @@ ukf.compute <- function( m0, P0, y, f, g, Q, R, n=length(m), alpha=1e-03, kappa=
   P.pred <- array( 0, dim=c(dim(Q), K ) )
       # The predictions for the mean and variance
   for( i in 1:K ){
-    pred <- ukf.predict( m[,i], P[,,i], f, Q, n, alpha, kappa, betta )
+    pred <- ukf.predict( m[,i], matrix(P[,,i]), f, Q, n, alpha, kappa, betta )
         # The list of predicted values
     m.pred[,i] <- pred$m
     P.pred[,,i] <- pred$P
