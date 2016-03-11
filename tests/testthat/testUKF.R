@@ -43,7 +43,7 @@ test_that("A one-dimensional linear example", {
       # Initialize the mean and covariance
   base <- fkf( m.0, P.0, 0, 0, FF, GG, Q, R, sim$y )
       # From the FKF package
-  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R )
+  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, quad=F )
       # the unscented filter
   expect_equal( base$att, alt$m )
   expect_equal( base$at, alt$m.pred )
@@ -55,7 +55,7 @@ test_that("A one-dimensional linear example", {
   sim <- sim.data( 0, f, g, R, Q, K )
   base <- fkf( m.0, P.0, 0, 0, FF, GG, Q, R, sim$y )
       # From the FKF package
-  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R )
+  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, quad=F )
       # the unscented filter
   expect_equal( base$att, alt$m )
   expect_equal( base$at, alt$m.pred )
@@ -67,7 +67,7 @@ test_that("A one-dimensional linear example", {
   sim <- sim.data( 0, f, g, R, Q, K )
   base <- fkf( m.0, P.0, 0, 0, FF, GG, Q, R, sim$y )
       # From the FKF package
-  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R )
+  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, quad=F )
       # the unscented filter
   expect_equal( base$att, alt$m )
   expect_equal( base$at, alt$m.pred )
@@ -83,7 +83,7 @@ test_that("A one-dimensional linear example", {
   sim <- sim.data( 0, f, g, R, Q, K )
   base <- fkf( m.0, P.0, 0, hh, FF, GG, Q, R, sim$y )
       # From the FKF package
-  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R )
+  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, quad=F )
       # the unscented filter
   expect_equal( base$att, alt$m )
   expect_equal( base$at, alt$m.pred )
@@ -96,7 +96,7 @@ test_that("A one-dimensional linear example", {
   sim <- sim.data( 0, f, g, R, Q, K )
   base <- fkf( m.0, P.0, 0, hh, FF, GG, Q, R, sim$y )
       # From the FKF package
-  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R )
+  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, quad=F )
       # the unscented filter
   expect_equal( base$att, alt$m )
   expect_equal( base$at, alt$m.pred )
@@ -138,7 +138,7 @@ test_that("A two-dimensional linear example", {
       # Initialize the mean and covariance
   base <- fkf( m.0, P.0, matrix(0,4,1), matrix(0,2,1), FF, GG, Q, R, sim$y )
       # From the FKF package
-  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, length(m.0) )
+  alt <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, length(m.0), quad=F )
       # the unscented filter
   expect_equal( base$att, alt$m )
   expect_equal( base$at, alt$m.pred )
@@ -158,7 +158,7 @@ test_that("A two-dimensional non-linear example",{
   K <- 500
   del.t <- .01
   grav <- 9.8
-  q.c <- .1
+  q.c <- .01
   f <- function( x ) c( x[1] + del.t * x[2], x[2] - grav * sin(x[1]) * del.t )
   g <- function( x ) sin( x[1] )
   Q <- matrix( c( q.c * del.t ^ 3 / 3, q.c * del.t ^ 2 / 2, q.c * del.t ^ 2 / 2, q.c * del.t ), 2, 2 )
@@ -167,7 +167,7 @@ test_that("A two-dimensional non-linear example",{
   sim <- sim.data( x.0, f, g, R, Q, K )
   m.0 <- .8 * x.0
   P.0 <- 200*Q
-  ukf <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, length(m.0) )
+  ukf <- ukf.compute( m.0, P.0, sim$y, f, g, Q, R, length(m.0), alpha=1, quad = F )
   
   plot(del.t*1:K, sim$x[1,], type='l', lwd=2 )
   points(del.t*1:K, sim$y, pch=19, col='blue' )
